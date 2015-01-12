@@ -5,136 +5,144 @@
 
 /* jshint strict: true, node: true */
 
-"use strict";
+'use strict';
 
-var ical = require('ical');
+var ical = require('ical'),
+    util = require('util'),
+    express = require('express'),
+    moment = require('moment-range'),
+    _ = require('lodash-node'),
+    config = require('config'),
+    EventEmitter = require('events').EventEmitter;
 
-var format = require('util').format;
-var path = require('path');
+var debug = require('debug')('conf-free-api');
 
-var express = require('express');
+moment.locale('en', config.get('moment.en'));
 
-var moment = require('moment');
+// how often to ping the calendar server in min 
+var CALENDAR_INTERVAL = config.get('ics.calender-interval');
 
-var _ = require('underscore');
-
-var config = require('config');
-
-var CALENDAR_INTERVAL = config.get('ics.calender-interval');; // in minutes
-
-var BUSY_FUZZ = config.get('ics.busy-fuzz');
-
-moment.lang('en', config.get('moment.en'));
-
-var ics = config.get('ics.url');
-
-var rooms = config.get('ics.rooms').map(
-  function transform(i) {
-    i.email = "yvr-" + i.id + "@mozilla.com";
-    return i;
+_.mixin({
+  isFree : function isFree (ev) {
+    return (ev.type === "FREE");
+  },
+  isBusy : function isBusy (ev) {
+    return (ev.type === "BUSY");
   }
-);
+});
 
-function getFreeBusy() {
-  var now = moment();
-  var todayFilter = function(fb) {
-    // we only need the items that are within today's free/busy timeframe
-    return now.isSame(fb.start, 'day') ||
-           now.isSame(fb.end, 'day') ||
-           now.isAfter(fb.start) && now.isBefore(fb.end);
-  };
+function FreeBusy() {
+  FreeBusy.init.call(this);
+}
 
-  console.log("getFreeBusy", now.format('h:mma'));
+FreeBusy.prototype.formatURL = undefined;
 
-  _.each(rooms, function (room) {
-    // ICS calendar URL format: 
-    //  first %s requires email, 
-    //  second %s requires date in YYYMMMDDD (20140516) format
-    var url = format(ics, room.email, now.format("YYYYMMDD"));
+FreeBusy.prototype.formatURL = function formatURL (url, room, now) {
+  return util.format(url, encodeURIComponent(room.email), now.format("YYYYMMDD"));
+};
 
-    ical.fromURL(url, {},
-      function(err, data) {
-        if (err) { console.error(err); return err; }
-        // strip down the information to lists of Free Busy arrays
-        data = _.pluck(_.where(data, {type : 'VFREEBUSY'}), 'freebusy');
-        // Merge the arrays and convert the undefined items into empty arrays
-        //  Filter to only the data relevant to today
-        room.freebusy = _.filter(_.flatten(_.compact(data)), todayFilter);
-      }
-    );
-  });
+FreeBusy.init = function() {
+  this.url = config.get('ics.url');
+  this.rooms = config.get('ics.rooms');
 
-  // add CALENDAR_INTERVAL min or the remainder of CALENDAR_INTERVAL min
-  now.add('minutes', (CALENDAR_INTERVAL - (now.minutes() % CALENDAR_INTERVAL)));
-  console.log("next run", now.fromNow());
+  if (!this.formatURL) {
+    this.formatURL = function (url, room, now) { return url; };
+  }
 
+  this.getAll();
   // run every CALENDAR_INTERVAL min on the CALENDAR_INTERVAL
-  // use the diff against the current time for milliseconds
-  setTimeout(getFreeBusy, now.diff());
-}
+  setInterval(this.getAll, CALENDAR_INTERVAL * 1000);
+};
 
-// Both free and busy methods use a 5 min start fuzz such that they will return something
-// that is about to be free or about to be busy
-function busy(rs) {
+FreeBusy.prototype.free = function free() {
   var now = moment();
-  return _.filter(rs, function (room) {
-    return _.some(room.freebusy, function (fb) {
-      var fuzzStart = moment(fb.start).subtract('minutes', BUSY_FUZZ);
-      // console.log(room.name, "busy", fuzzStart.fromNow(), "and free again", moment(fb.end).fromNow());
-      return _.isBusy(fb) && now.isAfter(fuzzStart) && now.isBefore(fb.end);
+  return _.filter(this.rooms, function (room) {
+    return _.every(room.freebusy, function (fb) {
+      var start = moment(fb.start);
+      var range = moment().range(start, moment(fb.end));
+      // it is marked FREE, this is very uncommon for most calendars
+      // || OR ||
+      // check that our next busy event is later
+      return (_.isFree(fb) && range.contains(now)) ||
+             (_.isBusy(fb) && start.isAfter(now));
     });
   });
-}
-
-function free(rs) {
+};
+FreeBusy.prototype.busy = function busy() {
   var now = moment();
-  return _.filter(rs, function (room) {
+  return _.filter(this.rooms, function (room) {
     return _.some(room.freebusy, function (fb) {
-      var fuzzStart = moment(fb.start).subtract('minutes', BUSY_FUZZ);
-      var isFree = (_.isFree(fb) && now.isAfter(fuzzStart) && now.isBefore(fb.end));
-      var isNotNow = !(now.isAfter(fb.start) && now.isBefore(fb.end));
-      return (isFree || isNotNow);
+      var range = moment().range(moment(fb.start), moment(fb.end));
+      return _.isBusy(fb) && range.contains(now);
     });
   });
-}
+};
+
+FreeBusy.prototype.get = function get(room) {
+  var now = moment();
+  debug(now.toDate());
+  var url = this.formatURL(this.url, room, now);
+  debug(url);
+  var todayFilter = function(fb) {
+    var eod = now.clone().endOf('day');
+    var fbRange = moment().range(fb.start, fb.end);
+    var dayRange = moment().range(now, eod);
+    // starts later but today
+    // || OR ||
+    // started before now but ends after now (runs through)
+    return fbRange.overlaps(dayRange);
+  };
+  ical.fromURL(url, {},
+    function(err, data) {
+      if (err) { console.error(err); return err; }
+      if (debug.enabled) { console.dir(data); }
+
+      // strip down the information to lists of Free Busy arrays
+      var fbTypes = _.where(data, {type : 'VFREEBUSY'});
+      if (debug.enabled) { console.log('fbTypes', fbTypes); }
+
+      var fbLists = _.pluck(fbTypes, 'freebusy');
+      if (debug.enabled) { console.log('fbLists', fbLists); }
+
+      var fbCompact = _.compact(data);
+      if (debug.enabled) { console.log('fbCompact', fbCompact); }
+
+      var fbFlatten = _.flatten(fbCompact);
+      if (debug.enabled) { console.log('fbFlatten', fbFlatten); }
+
+      // Merge the arrays and convert the undefined items into empty arrays
+      //  Filter to only the data relevant to today
+      room.freebusy = _.filter(fbFlatten, todayFilter);
+      room.next = _.find(room.freebusy, todayFilter) || null;
+    },
+    this);
+};
+FreeBusy.prototype.getAll = function getAll() {
+  _.each(this.rooms, this.get, this);
+};
+
 
 // EXPRESS
 
-var app = express();
-
-app.use(express.static(__dirname + '/public'));
+var app = module.exports = express();
+var ffbb = new FreeBusy();
 
 // JSON API
 
 app.get('/api/rooms', function(req, res, next){
-  res.send({ fuzz : 0, rooms : rooms });
+  res.send({ rooms : ffbb.rooms });
 });
 
 app.get('/api/rooms/free', function(req, res, next){
-  res.send({ fuzz : BUSY_FUZZ, rooms : free(rooms) });
+  res.send({ rooms : ffbb.free() });
 });
 
 app.get('/api/rooms/busy', function(req, res, next){
-  res.send({ fuzz : BUSY_FUZZ, rooms : busy(rooms) });
+  res.send({ rooms : ffbb.busy() });
 });
 
-// HTML WIDGET
-
-app.engine('.html', require('ejs').__express);
-app.set('views', __dirname + '/views');
-app.set('view engine', 'html');
-
-app.get('/', function(req, res){
-  res.render('index', {
-    title: config.get('ics.title')
-  });
-});
-
-app.get('/js/moment.js', function (req,res) {
-  res.sendfile(path.join(__dirname,'node_modules','moment','moment.js'));
-});
-
-var server = app.listen(Number(process.env.PORT || 5000), function() {
-  getFreeBusy();
-  console.log('NODE_ENV=%s http://%s:%d', app.settings.env, server.address().address, server.address().port);
-});
+if (!module.parent) {
+  var server = app.listen(Number(process.env.PORT || 5000), function() {
+    console.log('NODE_ENV=%s http://%s:%d', app.settings.env, server.address().address, server.address().port);
+  });  
+}

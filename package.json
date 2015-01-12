@@ -1,31 +1,34 @@
 {
-  "name": "yvr-conf-free",
+  "name": "conf-free-api",
   "version": "0.1.0",
   "author": "Bryan Clark <clarkbw@gmail.com>",
-  "description": "A Node server that gathers the free/busy calendar information for conference rooms in Mozilla YVR",
+  "description": "A node API server that translates Free Busy information into a consumable JSON API",
   "scripts": {
     "start": "node server.js",
-    "push": "stackato push -n"
+    "test": "./node_modules/.bin/mocha test/*test.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mozillayvr/yvr-conf-free.git"
+    "url": "https://github.com/mozillayvr/conf-free-api.git"
   },
   "keywords": [
-    "yvr",
-    "conference",
-    "room"
+    "ical",
+    "freebusy"
   ],
   "dependencies": {
-    "config": "1.9.0",
-    "ejs": "~1.0.0",
-    "express": "4.3.0",
-    "ical": "0.3.1",
-    "moment": "2.6.0",
-    "underscore": "1.7.0"
+    "config": "~1.9.0",
+    "debug": "^2.1.1",
+    "express": "~4.10.4",
+    "ical": "~0.3.1",
+    "lodash-node": "^2.4.1",
+    "moment": "~2.8.4",
+    "moment-range": "^1.0.5"
   },
   "license": "MPL",
   "engines": {
     "node": ">=0.6"
+  },
+  "devDependencies": {
+    "mocha": "^2.1.0"
   }
 }
