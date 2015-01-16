@@ -5,6 +5,7 @@
   "description": "A node API server that translates Free Busy information into a consumable JSON API",
   "scripts": {
     "start": "node server.js",
+    "dev": "supervisor server.js",
     "test": "./node_modules/.bin/mocha test/*test.js"
   },
   "repository": {
