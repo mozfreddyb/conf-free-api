@@ -1,13 +1,14 @@
 {
-  "name": "conf-free-api",
-  "version": "0.1.0",
+  "name": "gcal-conf-free-api",
+  "version": "0.1.1",
   "author": "Bryan Clark <clarkbw@gmail.com>",
-  "description": "A node API server that translates Free Busy information into a consumable JSON API",
+  "description": "An express API server that translates Google Calendar ical Free Busy information into a consumable JSON API",
   "scripts": {
     "start": "node server.js",
     "dev": "supervisor server.js",
     "test": "./node_modules/.bin/mocha test/*test.js"
   },
+  "main" : "server.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/mozillayvr/conf-free-api.git"
