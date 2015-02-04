@@ -8,6 +8,10 @@ A Node.js and Express.js backend designed to query you calendaring server and de
     npm start
     npm test
 
+## Debugging
+
+  DEBUG="conf-free-api" npm start
+
 ## API
 
 * All Rooms and related Free / Busy information
@@ -16,4 +20,3 @@ A Node.js and Express.js backend designed to query you calendaring server and de
   * http://0.0.0.0:5000/api/rooms/busy
 * Only rooms currently free
   * http://0.0.0.0:5000/api/rooms/free
-
