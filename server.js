@@ -19,7 +19,7 @@ var debug = require('debug')('conf-free-api');
 
 moment.locale('en', config.get('moment.en'));
 
-// how often to ping the calendar server in min 
+// how often to ping the calendar server in min
 var CALENDAR_INTERVAL = config.get('ics.calender-interval');
 
 function FreeBusy() {
@@ -83,7 +83,8 @@ FreeBusy.prototype.get = function get(room) {
   ical.fromURL(url, {},
     function(err, data) {
       if (err) { console.error(err); return err; }
-      if (debug.enabled) { console.dir('data', data); }
+
+      debug(JSON.stringify(data,null," "));
 
       // strip down the information to lists of Free Busy arrays
       var fbTypes = _.where(data, {type : 'VFREEBUSY'});
@@ -129,5 +130,5 @@ app.get('/api/rooms/busy', function(req, res, next){
 if (!module.parent) {
   var server = app.listen(Number(process.env.PORT || 5000), function() {
     console.log('NODE_ENV=%s http://%s:%d', app.settings.env, server.address().address, server.address().port);
-  });  
+  });
 }
