@@ -23,8 +23,7 @@
     "express": "~4.11.2",
     "ical": "~0.3.1",
     "lodash-node": "~3.1.0",
-    "moment": "~2.9.0",
-    "moment-range": "^1.0.5"
+    "moment": "~2.9.0"
   },
   "license": "MPL",
   "engines": {

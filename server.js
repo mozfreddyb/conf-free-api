@@ -10,7 +10,7 @@
 var ical = require('ical'),
     util = require('util'),
     express = require('express'),
-    moment = require('moment-range'),
+    moment = require('moment'),
     _ = require('lodash-node'),
     config = require('config'),
     EventEmitter = require('events').EventEmitter;
@@ -40,14 +40,12 @@ FreeBusy.init = function() {
 };
 
 FreeBusy.prototype.free = function free() {
-  var now = moment();
   return _.filter(this.rooms, function (room) {
     return room.current === null;
   });
 };
 
 FreeBusy.prototype.busy = function busy() {
-  var now = moment();
   return _.filter(this.rooms, function (room) {
     return room.current !== null;
   });
@@ -60,21 +58,18 @@ FreeBusy.prototype.get = function get(room) {
 
   var findToday = function(fb) {
     var eod = now.clone().endOf('day');
-    var fbRange = moment().range(fb.start, fb.end);
-    var dayRange = moment().range(now, eod);
     // starts later but today
     // || OR ||
     // started before now but ends after now (runs through)
-    return fbRange.overlaps(dayRange);
+    return (moment(fb.start).isBetween(now, eod) ||
+            moment(fb.end).isBetween(now, eod));
   };
   // this function relies on an array sorted by start time
   var findNext = function(fb) {
-    var range = moment().range(fb.start, fb.end);
-    return !now.within(range);
+    return !now.isBetween(fb.start, fb.end);
   };
   var findNow = function(fb) {
-    var range = moment().range(fb.start, fb.end);
-    return now.within(range);
+    return now.isBetween(fb.start, fb.end);
   };
   var sortStartTime = function(fb) {
     return moment(fb.start).valueOf();
@@ -84,22 +79,22 @@ FreeBusy.prototype.get = function get(room) {
     function(err, data) {
       if (err) { console.error(err); return err; }
 
-      debug(JSON.stringify(data,null," "));
+      // debug(JSON.stringify(data,null," "));
 
       // strip down the information to lists of Free Busy arrays
       var fbTypes = _.where(data, {type : 'VFREEBUSY'});
-      if (debug.enabled) { console.log('fbTypes', fbTypes); }
+      // debug('fbTypes', fbTypes);
 
       // Merge the arrays and convert the undefined items into empty arrays
       //  Filter to only the data relevant to today
       room.freebusy = _.sortBy(_.filter(fbTypes, findToday), sortStartTime);
-      if (debug.enabled) { console.log('room.freebusy', room.freebusy); }
+      debug('room.freebusy', room.freebusy);
 
       room.next = _.find(room.freebusy, findNext) || null;
-      if (debug.enabled) { console.log('room.next', room.next); }
+      debug('room.next', room.next);
 
       room.current = _.find(room.freebusy, findNow) || null;
-      if (debug.enabled) { console.log('room.current', room.current); }
+      debug('room.current', room.current);
     },
     this);
 };
