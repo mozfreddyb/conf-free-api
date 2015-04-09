@@ -1,6 +1,6 @@
 {
   "name": "gcal-conf-free-api",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "author": "Bryan Clark <clarkbw@gmail.com>",
   "description": "An express API server that translates Google Calendar ical Free Busy information into a consumable JSON API",
   "scripts": {
