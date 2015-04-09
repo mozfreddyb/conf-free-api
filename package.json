@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "supervisor server.js",
-    "test": "./node_modules/.bin/mocha test/*test.js"
+    "test": "./node_modules/.bin/mocha test/*test.js",
+    "outdated": "npm outdated --depth=0"
   },
   "main": "server.js",
   "repository": {
@@ -18,12 +19,12 @@
     "freebusy"
   ],
   "dependencies": {
-    "config": "~1.10.0",
-    "debug": "~2.1.1",
-    "express": "~4.11.2",
+    "config": "~1.12.x",
+    "debug": "~2.1.x",
+    "express": "~4.12.x",
     "ical": "~0.3.1",
-    "lodash-node": "~3.1.0",
-    "moment": "~2.9.0"
+    "lodash": "~3.6.x",
+    "moment": "~2.10.x"
   },
   "license": "MPL",
   "engines": {

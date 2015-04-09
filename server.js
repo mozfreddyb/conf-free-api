@@ -11,11 +11,11 @@ var ical = require('ical'),
     util = require('util'),
     express = require('express'),
     moment = require('moment'),
-    _ = require('lodash-node'),
+    _ = require('lodash'),
     config = require('config'),
     EventEmitter = require('events').EventEmitter;
 
-var debug = require('debug')('conf-free-api');
+var debug = require('debug')('gcal-conf-free-api');
 
 moment.locale('en', config.get('moment.en'));
 
@@ -105,8 +105,10 @@ FreeBusy.prototype.getAll = function getAll() {
 
 // EXPRESS
 
-var app = module.exports = express();
+var app = module.exports.app = express();
 var ffbb = new FreeBusy();
+
+module.exports.fb = ffbb;
 
 // JSON API
 
