@@ -1,0 +1,37 @@
+{
+  "ics" : {
+    "port": 5000,
+    "url" : "https://www.google.com/calendar/ical/%s/public/basic.ics?fmt=ifb&date=%s",
+    "calender-interval" : 5,
+    "rooms" : [
+      { "name" : "Kaffeeklatsch", "id" : "2a",
+        "email" : "mozilla.com_626572323031@resource.calendar.google.com",
+        "vidyo" : true, "size" : 2 },
+      { "name" : "Gretchenfrage", "id" : "2b",
+        "email" : "mozilla.com_626572323035@resource.calendar.google.com",
+        "vidyo" : true, "size" : 2 },
+      { "name" : "Zeitgeist", "id" : "commons",
+        "email" : "mozilla.com_626572323130@resource.calendar.google.com",
+        "vidyo" : true, "size" : 3 }
+    ]
+  },
+	"moment" : {
+		"en" : {
+	    "relativeTime" : {
+        "future": "in %s",
+        "past":   "%s ago",
+        "s":  "a jiff",
+        "m":  "%dm",
+        "mm": "%dm",
+        "h":  "%dh",
+        "hh": "%dh",
+        "d":  "a day",
+        "dd": "%d days",
+        "M":  "a month",
+        "MM": "%d months",
+        "y":  "a year",
+        "yy": "%d years"
+    	}
+		}
+	}
+}
