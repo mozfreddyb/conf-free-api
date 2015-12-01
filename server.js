@@ -82,7 +82,9 @@ FreeBusy.prototype.get = function get(room) {
       // debug(JSON.stringify(data,null," "));
 
       // strip down the information to lists of Free Busy arrays
-      var fbTypes = _.where(data, {type : 'VFREEBUSY'});
+      var fbTypes = _.filter(data, function(el) {
+        return el.type == 'VEVENT' || el.type == 'VFREEBUSY';
+      });
       // debug('fbTypes', fbTypes);
 
       // Merge the arrays and convert the undefined items into empty arrays
